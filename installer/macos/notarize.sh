@@ -25,9 +25,9 @@ fi
 
 # Run macdeployqt
 if [[ "$SIGNING_READY" == "true" ]]; then
-    find build -name "DB Browser for SQL*.app" -exec $(brew --prefix sqlb-qt@5)/bin/macdeployqt {} -sign-for-notarization=$DEV_ID \;
+    find build -maxdepth 1 -name "*.app" -exec $(brew --prefix sqlb-qt@5)/bin/macdeployqt {} -sign-for-notarization=$DEV_ID \;
 else
-    find build -name "DB Browser for SQL*.app" -exec $(brew --prefix sqlb-qt@5)/bin/macdeployqt {} \;
+    find build -maxdepth 1 -name "*.app" -exec $(brew --prefix sqlb-qt@5)/bin/macdeployqt {} \;
 fi
 
 # Add the 'formats' and 'nalgeon/sqlean' extensions to the app bundle
@@ -41,8 +41,7 @@ if [[ -n "$GH_TOKEN" ]]; then
 else
     echo "GH_TOKEN not provided; skipping sqlean download."
 fi
-for TARGET in $(find build -name "DB Browser for SQL*.app" | sed -e 's/ /_/g'); do
-    TARGET=$(echo $TARGET | sed -e 's/_/ /g')
+while IFS= read -r -d '' TARGET; do
     mkdir -p "$TARGET/Contents/Extensions"
 
     arch -x86_64 clang -I /opt/homebrew/opt/sqlb-sqlite/include -L /opt/homebrew/opt/sqlb-sqlite/lib -fno-common -dynamiclib src/extensions/extension-formats.c -o formats_x86_64.dylib
@@ -67,17 +66,15 @@ for TARGET in $(find build -name "DB Browser for SQL*.app" | sed -e 's/ /_/g'); 
         install_name_tool -id "@executable_path/../Extensions/simple.dylib" "$TARGET/Contents/Extensions/simple.dylib"
         ln -s simple.dylib "$TARGET/Contents/Extensions/simple.dylib.dylib"
     fi
-done
+done < <(find build -maxdepth 1 -name "*.app" -print0)
 
 # Copy the license file to the app bundle
-for TARGET in $(find build -name "DB Browser for SQL*.app" | sed -e 's/ /_/g'); do
-    TARGET=$(echo $TARGET | sed -e 's/_/ /g')
+while IFS= read -r -d '' TARGET; do
     cp LICENSE* "$TARGET/Contents/Resources/"
-done
+done < <(find build -maxdepth 1 -name "*.app" -print0)
 
 # Copy the translation files to the app bundle
-for TARGET in $(find build -name "DB Browser for SQL*.app" | sed -e 's/ /_/g'); do
-    TARGET=$(echo $TARGET | sed -e 's/_/ /g')
+while IFS= read -r -d '' TARGET; do
     mkdir -p "$TARGET/Contents/translations"
     for i in ar cs de en es fr it ko pl pt pt_BR ru uk zh_CN zh_TW; do
     find $(brew --prefix sqlb-qt@5)/translations -name "qt_${i}.qm" 2> /dev/null -exec cp {} "$TARGET/Contents/translations/" \;
@@ -86,11 +83,10 @@ for TARGET in $(find build -name "DB Browser for SQL*.app" | sed -e 's/ /_/g'); 
     find $(brew --prefix sqlb-qt@5)/translations -name "qtscript_${i}.qm" 2> /dev/null -exec cp {} "$TARGET/Contents/translations/" \;
     find $(brew --prefix sqlb-qt@5)/translations -name "qtxmlpatterns_${i}.qm" 2> /dev/null -exec cp {} "$TARGET/Contents/translations/" \;
     done 
-done
+done < <(find build -maxdepth 1 -name "*.app" -print0)
 
 # Copy the icon file to the app bundle
-for TARGET in $(find build -name "DB Browser for SQL*.app" | sed -e 's/ /_/g'); do
-    TARGET=$(echo $TARGET | sed -e 's/_/ /g')
+while IFS= read -r -d '' TARGET; do
     if [ "$NIGHTLY" = "false" ]; then
     cp installer/macos/macapp.icns "$TARGET/Contents/Resources/"
     /usr/libexec/PlistBuddy -c "Set :CFBundleIconFile macapp.icns" "$TARGET/Contents/Info.plist"
@@ -98,11 +94,10 @@ for TARGET in $(find build -name "DB Browser for SQL*.app" | sed -e 's/ /_/g'); 
     cp installer/macos/macapp-nightly.icns "$TARGET/Contents/Resources/"
     /usr/libexec/PlistBuddy -c "Set :CFBundleIconFile macapp-nightly.icns" "$TARGET/Contents/Info.plist"
     fi
-done
+done < <(find build -maxdepth 1 -name "*.app" -print0)
 
 # Sign the manually added extensions
-for TARGET in $(find build -name "DB Browser for SQL*.app" | sed -e 's/ /_/g'); do
-    TARGET=$(echo $TARGET | sed -e 's/_/ /g')
+while IFS= read -r -d '' TARGET; do
     if [[ "$SIGNING_READY" == "true" ]]; then
         codesign --sign "$DEV_ID" --deep --force --options=runtime --strict --timestamp "$TARGET/Contents/Extensions/formats.dylib"
         codesign --sign "$DEV_ID" --deep --force --options=runtime --strict --timestamp "$TARGET/Contents/Extensions/sqlean.dylib"
@@ -113,7 +108,7 @@ for TARGET in $(find build -name "DB Browser for SQL*.app" | sed -e 's/ /_/g'); 
     else
         echo "Skipping codesign for $TARGET (credentials unavailable)."
     fi
-done
+done < <(find build -maxdepth 1 -name "*.app" -print0)
 
 # Move app bundle to installer folder for DMG creation
 mv build/*.app installer/macos
