@@ -28,3 +28,9 @@ int sqlite3_simple_init(sqlite3* db, char** pzErrMsg, const sqlite3_api_routines
     return simpleRegisterJiebaModes(api);
 }
 
+// Default entry point used by sqlite3_load_extension when no entry symbol is specified.
+int sqlite3_extension_init(sqlite3* db, char** pzErrMsg, const sqlite3_api_routines* pApi)
+{
+    return sqlite3_simple_init(db, pzErrMsg, pApi);
+}
+
