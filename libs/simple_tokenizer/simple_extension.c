@@ -13,6 +13,20 @@
 
 SQLITE_EXTENSION_INIT1
 
+#if defined(_WIN32)
+#define SQLB_EXT_EXPORT __declspec(dllexport)
+#elif defined(__GNUC__)
+#define SQLB_EXT_EXPORT __attribute__((visibility("default")))
+#else
+#define SQLB_EXT_EXPORT
+#endif
+
+#if defined(__APPLE__)
+#define SQLB_NO_DEAD_STRIP __attribute__((used))
+#else
+#define SQLB_NO_DEAD_STRIP
+#endif
+
 static int fts5ApiFromDb(sqlite3* db, fts5_api** ppApi)
 {
     sqlite3_stmt* stmt = NULL;
@@ -28,7 +42,7 @@ static int fts5ApiFromDb(sqlite3* db, fts5_api** ppApi)
     return rc;
 }
 
-int sqlite3_simple_init(sqlite3* db, char** pzErrMsg, const sqlite3_api_routines* pApi)
+SQLB_EXT_EXPORT SQLB_NO_DEAD_STRIP int sqlite3_simple_init(sqlite3* db, char** pzErrMsg, const sqlite3_api_routines* pApi)
 {
     SQLITE_EXTENSION_INIT2(pApi);
 
@@ -48,7 +62,7 @@ int sqlite3_simple_init(sqlite3* db, char** pzErrMsg, const sqlite3_api_routines
 }
 
 // Default entry point used by sqlite3_load_extension when no entry symbol is specified.
-int sqlite3_extension_init(sqlite3* db, char** pzErrMsg, const sqlite3_api_routines* pApi)
+SQLB_EXT_EXPORT SQLB_NO_DEAD_STRIP int sqlite3_extension_init(sqlite3* db, char** pzErrMsg, const sqlite3_api_routines* pApi)
 {
     return sqlite3_simple_init(db, pzErrMsg, pApi);
 }
