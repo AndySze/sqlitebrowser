@@ -60,6 +60,11 @@ endif()
 
 include(config/platform.cmake)
 
+if(APPLE)
+    set_source_files_properties(src/macapp.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+    target_sources(${PROJECT_NAME} PRIVATE src/macapp.icns)
+endif()
+
 find_package(${QT_MAJOR} REQUIRED COMPONENTS Concurrent Gui LinguistTools Network PrintSupport Test Widgets Xml)
 set(QT_LIBS
     ${QT_MAJOR}::Gui

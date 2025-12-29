@@ -158,6 +158,15 @@ cmake --build .
 mv DB\ Browser\ for\ SQLite.app /Applications
 ```
 
+If you see “may be damaged or incomplete” when launching the app, check that
+`/Applications/DB Browser for SQLite.app/Contents/Info.plist` has a
+`CFBundleExecutable` that matches the file in `Contents/MacOS/`. If the app was
+copied from another machine and got quarantined, clear it with:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/DB\ Browser\ for\ SQLite.app
+```
+
 > If you want to build universal binary, change the `cmake` command to<br>
 > `cmake -DcustomTap=1 -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" ..`<br>
 > Of course, this requires you to have an Apple Silicon Mac.
