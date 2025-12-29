@@ -56,6 +56,12 @@
     <?define SqleanPath="$(env.SqleanPath)" ?>
     <?define SQLiteExePath="$(env.ExePath)\release-sqlite\Release" ?>
     <?define SQLCipherExePath="$(env.ExePath)\release-sqlcipher\Release" ?>
-    <?define SimpleExtensionPath="$(var.SQLiteExePath)\extensions" ?>
+    <!--
+        Ship the simple tokenizer built from the SQLCipher configuration so the
+        extension links against the same SQLite/SQLCipher runtime used by both
+        executables. This avoids loader errors when only the SQLCipher DLL is
+        available at runtime.
+    -->
+    <?define SimpleExtensionPath="$(var.SQLCipherExePath)\extensions" ?>
 
 </Include>
