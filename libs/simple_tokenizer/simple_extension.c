@@ -1,6 +1,7 @@
 #include "simple_tokenizer.h"
 
 #include <sqlite3ext.h>
+#include <stddef.h>
 
 #ifndef SQLITE_CORE
 #define SQLITE_CORE 1
@@ -14,14 +15,14 @@ SQLITE_EXTENSION_INIT1
 
 static int fts5ApiFromDb(sqlite3* db, fts5_api** ppApi)
 {
-    sqlite3_stmt* stmt = nullptr;
-    *ppApi = nullptr;
+    sqlite3_stmt* stmt = NULL;
+    *ppApi = NULL;
 
-    int rc = sqlite3_prepare_v2(db, "SELECT fts5(?1)", -1, &stmt, nullptr);
+    int rc = sqlite3_prepare_v2(db, "SELECT fts5(?1)", -1, &stmt, NULL);
     if(rc != SQLITE_OK)
         return rc;
 
-    sqlite3_bind_pointer(stmt, 1, (void*)ppApi, "fts5_api_ptr", nullptr);
+    sqlite3_bind_pointer(stmt, 1, (void*)ppApi, "fts5_api_ptr", NULL);
     (void)sqlite3_step(stmt);
     rc = sqlite3_finalize(stmt);
     return rc;
@@ -31,7 +32,7 @@ int sqlite3_simple_init(sqlite3* db, char** pzErrMsg, const sqlite3_api_routines
 {
     SQLITE_EXTENSION_INIT2(pApi);
 
-    fts5_api* api = nullptr;
+    fts5_api* api = NULL;
     const int rc = fts5ApiFromDb(db, &api);
     if(rc != SQLITE_OK)
         return rc;

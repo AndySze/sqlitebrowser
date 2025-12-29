@@ -161,7 +161,7 @@ static int simpleTokenize(Fts5Tokenizer* pTok, void* pCtx, int flags, const char
 int simpleRegisterTokenizer(fts5_api* pApi, const char* zName, SimpleTokenizerMode mode)
 {
     static fts5_tokenizer tokenizer = { simpleCreate, simpleDelete, simpleTokenize };
-    return pApi->xCreateTokenizer(pApi, zName, (void*)(intptr_t)mode, &tokenizer, nullptr);
+    return pApi->xCreateTokenizer(pApi, zName, (void*)(intptr_t)mode, &tokenizer, NULL);
 }
 
 int simpleRegisterTokenizers(fts5_api* pApi)
