@@ -2182,7 +2182,14 @@ void DBBrowserDB::loadExtensionsFromSettings()
             QMessageBox::warning(nullptr, QApplication::applicationName(), tr("Error loading extension: %1").arg(lastError()));
     }
 
-    const QVariantMap builtinList = Settings::getValue("extensions", "builtin").toMap();
+    QVariantMap builtinList = Settings::getValue("extensions", "builtin").toMap();
+    const QVariantMap defaultBuiltins = Settings::defaultBuiltinExtensions();
+    for(const QString& ext : defaultBuiltins.keys())
+    {
+        if(!builtinList.contains(ext))
+            builtinList.insert(ext, defaultBuiltins.value(ext));
+    }
+
     for(const QString& ext : builtinList.keys())
     {
         if(builtinList.value(ext).toBool())

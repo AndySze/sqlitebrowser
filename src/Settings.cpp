@@ -409,21 +409,7 @@ QVariant Settings::getDefaultValue(const std::string& group, const std::string& 
 
     // extensions/builtin?
     if(group == "extensions" && name == "builtin")
-    {
-        QVariantMap builtinExtensions;
-
-#ifdef Q_OS_MAC
-        const QString simpleExt = qApp->applicationDirPath() + "/../Extensions/simple.dylib";
-        if(QFile::exists(simpleExt))
-            builtinExtensions.insert(simpleExt, true);
-#endif
-#ifdef Q_OS_WIN
-        const QString simpleExt = qApp->applicationDirPath() + "/extensions/simple.dll";
-        if(QFile::exists(simpleExt))
-            builtinExtensions.insert(simpleExt, true);
-#endif
-        return builtinExtensions;
-    }
+        return defaultBuiltinExtensions();
 
     // extensions/disableregex?
     if(group == "extension" && name == "disableregex")
@@ -472,6 +458,24 @@ QVariant Settings::getDefaultValue(const std::string& group, const std::string& 
 
     // Unknown combination of group and name? Return an invalid QVariant!
     return QVariant();
+}
+
+QVariantMap Settings::defaultBuiltinExtensions()
+{
+    QVariantMap builtinExtensions;
+
+#ifdef Q_OS_MAC
+    const QString simpleExt = qApp->applicationDirPath() + "/../Extensions/simple.dylib";
+    if(QFile::exists(simpleExt))
+        builtinExtensions.insert(simpleExt, true);
+#endif
+#ifdef Q_OS_WIN
+    const QString simpleExt = qApp->applicationDirPath() + "/extensions/simple.dll";
+    if(QFile::exists(simpleExt))
+        builtinExtensions.insert(simpleExt, true);
+#endif
+
+    return builtinExtensions;
 }
 
 QColor Settings::getDefaultColorValue(const std::string& group, const std::string& name, AppStyle style)
