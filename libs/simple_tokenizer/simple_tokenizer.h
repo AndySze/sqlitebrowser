@@ -21,6 +21,7 @@ typedef enum SimpleTokenizerMode {
 } SimpleTokenizerMode;
 
 int simpleRegisterTokenizer(const fts5_api* pApi, const char* zName, SimpleTokenizerMode mode);
+int simpleRegisterTokenizers(const fts5_api* pApi);
 
 #ifdef __cplusplus
 }

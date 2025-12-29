@@ -84,3 +84,13 @@ int simpleRegisterTokenizer(const fts5_api* pApi, const char* zName, SimpleToken
     return pApi->xCreateTokenizer(pApi, zName, (void*)(intptr_t)mode, &tokenizer, nullptr);
 }
 
+int simpleRegisterTokenizers(const fts5_api* pApi)
+{
+    int rc = simpleRegisterTokenizer(pApi, "simple", SIMPLE_TOKEN_MODE_BASIC);
+
+    if(rc == SQLITE_OK)
+        rc = simpleRegisterJiebaModes(pApi);
+
+    return rc;
+}
+
