@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+
+# Skip notarization when required secrets are not provided (e.g. CI without signing credentials)
+if [[ -z "$P12" || -z "$P12_PW" || -z "$KEYCHAIN_PW" || -z "$DEV_ID" || -z "$APPLE_ID" || -z "$APPLE_PW" || -z "$TEAM_ID" || -z "$GH_TOKEN" ]]; then
+    echo "Notarization credentials are missing; skipping macOS signing/notarization steps."
+    exit 0
+fi
+
 # Create a new keychain
 CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
 KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
