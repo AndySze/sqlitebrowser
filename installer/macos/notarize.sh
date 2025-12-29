@@ -1,31 +1,46 @@
 #!/usr/bin/env bash
 
-# Skip notarization when required secrets are not provided (e.g. CI without signing credentials)
-if [[ -z "$P12" || -z "$P12_PW" || -z "$KEYCHAIN_PW" || -z "$DEV_ID" || -z "$APPLE_ID" || -z "$APPLE_PW" || -z "$TEAM_ID" || -z "$GH_TOKEN" ]]; then
-    echo "Notarization credentials are missing; skipping macOS signing/notarization steps."
-    exit 0
+SIGNING_READY=true
+for VAR in P12 P12_PW KEYCHAIN_PW DEV_ID APPLE_ID APPLE_PW TEAM_ID; do
+    if [[ -z "${!VAR}" ]]; then
+        SIGNING_READY=false
+    fi
+done
+
+if [[ "$SIGNING_READY" == "false" ]]; then
+    echo "Signing credentials are missing; building unsigned DMG without notarization."
 fi
 
-# Create a new keychain
-CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
-KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-echo -n "$P12" | base64 --decode -o $CERTIFICATE_PATH
-security create-keychain -p "$KEYCHAIN_PW" $KEYCHAIN_PATH
-security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
-security unlock-keychain -p "$KEYCHAIN_PW" $KEYCHAIN_PATH
-security import $CERTIFICATE_PATH -P "$P12_PW" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-security list-keychain -d user -s $KEYCHAIN_PATH
+# Create a new keychain when signing is available
+if [[ "$SIGNING_READY" == "true" ]]; then
+    CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+    KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+    echo -n "$P12" | base64 --decode -o $CERTIFICATE_PATH
+    security create-keychain -p "$KEYCHAIN_PW" $KEYCHAIN_PATH
+    security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+    security unlock-keychain -p "$KEYCHAIN_PW" $KEYCHAIN_PATH
+    security import $CERTIFICATE_PATH -P "$P12_PW" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+    security list-keychain -d user -s $KEYCHAIN_PATH
+fi
 
 # Run macdeployqt
-find build -name "DB Browser for SQL*.app" -exec $(brew --prefix sqlb-qt@5)/bin/macdeployqt {} -sign-for-notarization=$DEV_ID \;
+if [[ "$SIGNING_READY" == "true" ]]; then
+    find build -name "DB Browser for SQL*.app" -exec $(brew --prefix sqlb-qt@5)/bin/macdeployqt {} -sign-for-notarization=$DEV_ID \;
+else
+    find build -name "DB Browser for SQL*.app" -exec $(brew --prefix sqlb-qt@5)/bin/macdeployqt {} \;
+fi
 
 # Add the 'formats' and 'nalgeon/sqlean' extensions to the app bundle
-gh auth login --with-token <<< "$GH_TOKEN"
-gh release download --pattern "sqlean-macos-x86.zip" --repo "nalgeon/sqlean"
-unzip sqlean-macos-x86.zip -d sqlean-macos-x86
-gh release download --pattern "sqlean-macos-arm64.zip" --repo "nalgeon/sqlean"
-unzip sqlean-macos-arm64.zip -d sqlean-macos-arm64
-lipo -create sqlean-macos-x86/sqlean.dylib sqlean-macos-arm64/sqlean.dylib -output sqlean.dylib
+if [[ -n "$GH_TOKEN" ]]; then
+    gh auth login --with-token <<< "$GH_TOKEN"
+    gh release download --pattern "sqlean-macos-x86.zip" --repo "nalgeon/sqlean"
+    unzip sqlean-macos-x86.zip -d sqlean-macos-x86
+    gh release download --pattern "sqlean-macos-arm64.zip" --repo "nalgeon/sqlean"
+    unzip sqlean-macos-arm64.zip -d sqlean-macos-arm64
+    lipo -create sqlean-macos-x86/sqlean.dylib sqlean-macos-arm64/sqlean.dylib -output sqlean.dylib
+else
+    echo "GH_TOKEN not provided; skipping sqlean download."
+fi
 for TARGET in $(find build -name "DB Browser for SQL*.app" | sed -e 's/ /_/g'); do
     TARGET=$(echo $TARGET | sed -e 's/_/ /g')
     mkdir "$TARGET/Contents/Extensions"
@@ -39,10 +54,12 @@ for TARGET in $(find build -name "DB Browser for SQL*.app" | sed -e 's/ /_/g'); 
         ln -s formats.dylib "$TARGET/Contents/Extensions/formats.dylib.dylib"
     fi
 
-    cp sqlean.dylib "$TARGET/Contents/Extensions/"
-    if [ -f "$TARGET/Contents/Extensions/sqlean.dylib" ]; then
-        install_name_tool -id "@executable_path/../Extensions/sqlean.dylib" "$TARGET/Contents/Extensions/sqlean.dylib"
-        ln -s sqlean.dylib "$TARGET/Contents/Extensions/sqlean.dylib.dylib"
+    if [ -f sqlean.dylib ]; then
+        cp sqlean.dylib "$TARGET/Contents/Extensions/"
+        if [ -f "$TARGET/Contents/Extensions/sqlean.dylib" ]; then
+            install_name_tool -id "@executable_path/../Extensions/sqlean.dylib" "$TARGET/Contents/Extensions/sqlean.dylib"
+            ln -s sqlean.dylib "$TARGET/Contents/Extensions/sqlean.dylib.dylib"
+        fi
     fi
 
     if [ -f "build/extensions/simple.dylib" ]; then
@@ -86,12 +103,16 @@ done
 # Sign the manually added extensions
 for TARGET in $(find build -name "DB Browser for SQL*.app" | sed -e 's/ /_/g'); do
     TARGET=$(echo $TARGET | sed -e 's/_/ /g')
-    codesign --sign "$DEV_ID" --deep --force --options=runtime --strict --timestamp "$TARGET/Contents/Extensions/formats.dylib"
-    codesign --sign "$DEV_ID" --deep --force --options=runtime --strict --timestamp "$TARGET/Contents/Extensions/sqlean.dylib"
-    if [ -f "$TARGET/Contents/Extensions/simple.dylib" ]; then
-        codesign --sign "$DEV_ID" --deep --force --options=runtime --strict --timestamp "$TARGET/Contents/Extensions/simple.dylib"
+    if [[ "$SIGNING_READY" == "true" ]]; then
+        codesign --sign "$DEV_ID" --deep --force --options=runtime --strict --timestamp "$TARGET/Contents/Extensions/formats.dylib"
+        codesign --sign "$DEV_ID" --deep --force --options=runtime --strict --timestamp "$TARGET/Contents/Extensions/sqlean.dylib"
+        if [ -f "$TARGET/Contents/Extensions/simple.dylib" ]; then
+            codesign --sign "$DEV_ID" --deep --force --options=runtime --strict --timestamp "$TARGET/Contents/Extensions/simple.dylib"
+        fi
+        codesign --sign "$DEV_ID" --deep --force --options=runtime --strict --timestamp "$TARGET"
+    else
+        echo "Skipping codesign for $TARGET (credentials unavailable)."
     fi
-    codesign --sign "$DEV_ID" --deep --force --options=runtime --strict --timestamp "$TARGET"
 done
 
 # Move app bundle to installer folder for DMG creation
@@ -122,11 +143,15 @@ else
     appdmg --quiet installer/macos/nightly.json "$TARGET"
 fi
 
-codesign --sign "$DEV_ID" --verbose --options=runtime --timestamp "$TARGET"
-codesign -vvv --deep --strict --verbose=4 "$TARGET"
+if [[ "$SIGNING_READY" == "true" ]]; then
+    codesign --sign "$DEV_ID" --verbose --options=runtime --timestamp "$TARGET"
+    codesign -vvv --deep --strict --verbose=4 "$TARGET"
 
-# Notarize the dmg
-xcrun notarytool submit *.dmg --apple-id $APPLE_ID --password $APPLE_PW --team-id $TEAM_ID --wait
+    # Notarize the dmg
+    xcrun notarytool submit *.dmg --apple-id $APPLE_ID --password $APPLE_PW --team-id $TEAM_ID --wait
 
-# Staple the notarization ticket
-xcrun stapler staple *.dmg
+    # Staple the notarization ticket
+    xcrun stapler staple *.dmg
+else
+    echo "Skipping signing/notarization for DMG (credentials unavailable)."
+fi
