@@ -3,13 +3,29 @@ sqlitebrowser.pro.user
 .qmake.stash
 CMakeLists.txt.user
 CMakeFiles
-*.cmake
 *.cxx_parameters
 
 # ignore any build folders
 build*/
 # folder with temporary test data
 testdata/
+
+# CMake (in-source build artifacts)
+CMakeCache.txt
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+Testing/
+DartConfiguration.tcl
+_CPack_Packages/
+CPackConfig.cmake
+CPackSourceConfig.cmake
+
+# Ninja
+.ninja_*
+build.ninja
+rules.ninja
 
 src/.ui/
 src/sqlitebrowser
@@ -35,5 +51,28 @@ libs/*/*/release/
 libs/*/*.a
 libs/*/*/*.a
 
+# IDEs / editors
+.idea/
+.vscode/
+.vs/
+*.swp
+*.swo
+
+# Qt Creator
+*.pro.user*
+*.qbs.user*
+*.qtc_clangd/
+
+# Local/vendor worktrees
+simple-master/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
 # Ignore .DS_Store files on OSX
 .DS_Store
+*.dSYM/
+*.dmg
+*.pkg

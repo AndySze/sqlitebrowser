@@ -139,6 +139,19 @@ if(APPLE OR WIN32)
         LIBRARY DESTINATION Extensions
         RUNTIME DESTINATION extensions
     )
+
+    # Make local macOS builds usable without running installer scripts:
+    # copy the built tokenizer extension into the app bundle so it can be auto-loaded.
+    if(APPLE)
+        add_dependencies(${PROJECT_NAME} simple_tokenizer)
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:${PROJECT_NAME}>/Contents/Extensions"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "$<TARGET_FILE:simple_tokenizer>"
+                "$<TARGET_BUNDLE_DIR:${PROJECT_NAME}>/Contents/Extensions/simple.dylib"
+            VERBATIM
+        )
+    endif()
 endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/version.h.in
