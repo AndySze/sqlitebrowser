@@ -184,6 +184,16 @@ jobs:
           } else {
             move target\System64\* "target\DB Browser for SQLite\"
           }
+          $simpleExtSource = Join-Path "${{ github.workspace }}" "release-sqlcipher\Release\extensions\simple.dll"
+          $simpleExtDestDir = "target\DB Browser for SQLite\extensions"
+          if (-not (Test-Path $simpleExtDestDir)) {
+            New-Item -ItemType Directory -Path $simpleExtDestDir | Out-Null
+          }
+          if (Test-Path $simpleExtSource) {
+            Copy-Item -Path $simpleExtSource -Destination $simpleExtDestDir -Force
+          } else {
+            Write-Host "simple.dll not found at $simpleExtSource"
+          }
           Compress-Archive -Path "target\DB Browser for SQLite\*" -DestinationPath $FILENAME_FORMAT
 
       - if: github.event_name != 'pull_request' && github.workflow != 'Build (Windows)'
