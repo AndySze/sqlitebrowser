@@ -115,6 +115,13 @@ if(APPLE OR WIN32)
     target_compile_definitions(simple_tokenizer PRIVATE SQLITE_ENABLE_FTS5 SQLITE_CORE)
 
     if(APPLE)
+        # Ensure the entry point symbols are exported even with aggressive dead-stripping,
+        # otherwise sqlite3_load_extension() cannot find them via dlsym().
+        target_link_options(simple_tokenizer PRIVATE
+            "-Wl,-exported_symbol,_sqlite3_extension_init"
+            "-Wl,-exported_symbol,_sqlite3_simple_init"
+        )
+
         set(SIMPLE_EXT_OUTPUT_DIR "${CMAKE_BINARY_DIR}/extensions")
         set_target_properties(simple_tokenizer PROPERTIES
             PREFIX ""
