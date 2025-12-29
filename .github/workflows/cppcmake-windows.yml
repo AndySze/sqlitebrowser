@@ -141,7 +141,7 @@ jobs:
             mv DB.Browser.for.SQLite-*.msi "DB.Browser.for.SQLite-dev-$(git rev-parse --short HEAD)-${{ matrix.arch }}.msi"
           }
 
-      - if: github.event_name != 'pull_request'
+      - if: github.event_name != 'pull_request' && secrets.SIGNPATH_API_TOKEN != '' && secrets.SIGNPATH_ORGANIZATION_ID != ''
         name: Upload artifacts for code signing with SignPath
         id: unsigned-artifacts
         uses: actions/upload-artifact@v6
@@ -150,7 +150,7 @@ jobs:
           path: installer\windows\DB.Browser.for.SQLite-*.msi
 
       # Change the signing-policy-slug when you release an RC, RTM or stable release.
-      - if: github.event_name != 'pull_request'
+      - if: github.event_name != 'pull_request' && secrets.SIGNPATH_API_TOKEN != '' && secrets.SIGNPATH_ORGANIZATION_ID != ''
         name: Code signing with SignPath
         uses: signpath/github-action-submit-signing-request@v2
         with:
