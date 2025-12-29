@@ -56,5 +56,6 @@
     <?define SqleanPath="$(env.SqleanPath)" ?>
     <?define SQLiteExePath="$(env.ExePath)\release-sqlite\Release" ?>
     <?define SQLCipherExePath="$(env.ExePath)\release-sqlcipher\Release" ?>
+    <?define SimpleExtensionPath="$(var.SQLiteExePath)\extensions" ?>
 
 </Include>

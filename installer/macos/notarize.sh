@@ -37,6 +37,12 @@ for TARGET in $(find build -name "DB Browser for SQL*.app" | sed -e 's/ /_/g'); 
         install_name_tool -id "@executable_path/../Extensions/sqlean.dylib" "$TARGET/Contents/Extensions/sqlean.dylib"
         ln -s sqlean.dylib "$TARGET/Contents/Extensions/sqlean.dylib.dylib"
     fi
+
+    if [ -f "build/extensions/simple.dylib" ]; then
+        cp build/extensions/simple.dylib "$TARGET/Contents/Extensions/"
+        install_name_tool -id "@executable_path/../Extensions/simple.dylib" "$TARGET/Contents/Extensions/simple.dylib"
+        ln -s simple.dylib "$TARGET/Contents/Extensions/simple.dylib.dylib"
+    fi
 done
 
 # Copy the license file to the app bundle
@@ -75,6 +81,9 @@ for TARGET in $(find build -name "DB Browser for SQL*.app" | sed -e 's/ /_/g'); 
     TARGET=$(echo $TARGET | sed -e 's/_/ /g')
     codesign --sign "$DEV_ID" --deep --force --options=runtime --strict --timestamp "$TARGET/Contents/Extensions/formats.dylib"
     codesign --sign "$DEV_ID" --deep --force --options=runtime --strict --timestamp "$TARGET/Contents/Extensions/sqlean.dylib"
+    if [ -f "$TARGET/Contents/Extensions/simple.dylib" ]; then
+        codesign --sign "$DEV_ID" --deep --force --options=runtime --strict --timestamp "$TARGET/Contents/Extensions/simple.dylib"
+    fi
     codesign --sign "$DEV_ID" --deep --force --options=runtime --strict --timestamp "$TARGET"
 done
 

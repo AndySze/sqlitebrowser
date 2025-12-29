@@ -3,6 +3,7 @@
 #include <QApplication>
 #include <QDebug>
 #include <QDir>
+#include <QFile>
 #include <QSettings>
 #include <QColor>
 #include <QFontInfo>
@@ -405,6 +406,24 @@ QVariant Settings::getDefaultValue(const std::string& group, const std::string& 
     // extensions/list?
     if(group == "extensions" && name == "list")
         return QStringList();
+
+    // extensions/builtin?
+    if(group == "extensions" && name == "builtin")
+    {
+        QVariantMap builtinExtensions;
+
+#ifdef Q_OS_MAC
+        const QString simpleExt = qApp->applicationDirPath() + "/../Extensions/simple.dylib";
+        if(QFile::exists(simpleExt))
+            builtinExtensions.insert(simpleExt, true);
+#endif
+#ifdef Q_OS_WIN
+        const QString simpleExt = qApp->applicationDirPath() + "/extensions/simple.dll";
+        if(QFile::exists(simpleExt))
+            builtinExtensions.insert(simpleExt, true);
+#endif
+        return builtinExtensions;
+    }
 
     // extensions/disableregex?
     if(group == "extension" && name == "disableregex")

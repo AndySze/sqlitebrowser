@@ -63,6 +63,7 @@
                     <Directory Id="extensions" Name="extensions">
                         <Component><File Source="$(var.SQLitePath)\formats.dll" /></Component>
                         <Component><File Source="$(var.SqleanPath)\sqlean.dll" /></Component>
+                        <Component Id="simple.dll"><File Source="$(var.SimpleExtensionPath)\simple.dll" /></Component>
                     </Directory>
                     <Directory Id="iconengines" Name="iconengines">
                         <Component><File Source="$(var.QtPath)\plugins\iconengines\qsvgicon.dll" /></Component>
@@ -147,14 +148,17 @@
                 <MergeRef Id="VCRedist"/>
             </Feature>
 
-            <Feature Id="Extensions" Title="SQLite Extensions" Description="SQLite runtime loadable extensions" AllowAdvertise="no" Display="expand">
-                <Feature Id="FormatsExtension" Title="Formats" Description="Provide additional field display formats." AllowAdvertise="no">
-                    <ComponentRef Id="formats.dll" />
+                <Feature Id="Extensions" Title="SQLite Extensions" Description="SQLite runtime loadable extensions" AllowAdvertise="no" Display="expand">
+                    <Feature Id="FormatsExtension" Title="Formats" Description="Provide additional field display formats." AllowAdvertise="no">
+                        <ComponentRef Id="formats.dll" />
+                    </Feature>
+                    <Feature Id="SqleanExtension" Title="sqlean" Description="All the Missing SQLite Functions." AllowAdvertise="no">
+                        <ComponentRef Id="sqlean.dll" />
+                    </Feature>
+                    <Feature Id="SimpleTokenizerExtension" Title="simple" Description="FTS5 tokenizer with jieba and jieba_query modes." AllowAdvertise="no">
+                        <ComponentRef Id="simple.dll" />
+                    </Feature>
                 </Feature>
-                <Feature Id="SqleanExtension" Title="sqlean" Description="All the Missing SQLite Functions." AllowAdvertise="no">
-                    <ComponentRef Id="sqlean.dll" />
-                </Feature>
-            </Feature>
 
             <!-- Registry -->
             <ComponentRef Id="RegistryInstallLocation" />

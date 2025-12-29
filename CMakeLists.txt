@@ -94,6 +94,53 @@ else()
     set(LIBSQLITE_NAME SQLite::SQLite3)
 endif()
 
+if(APPLE OR WIN32)
+    set(SIMPLE_TOKENIZER_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/simple_tokenizer/simple_extension.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/simple_tokenizer/simple_tokenizer.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/simple_tokenizer/jieba_query.c
+    )
+
+    add_library(simple_tokenizer MODULE ${SIMPLE_TOKENIZER_SOURCES})
+    set(SIMPLE_TOKENIZER_INCLUDE_DIRS)
+    if(DEFINED SQLite3_INCLUDE_DIRS)
+        list(APPEND SIMPLE_TOKENIZER_INCLUDE_DIRS ${SQLite3_INCLUDE_DIRS})
+    endif()
+    if(sqlcipher)
+        list(APPEND SIMPLE_TOKENIZER_INCLUDE_DIRS ${SQLCIPHER_INCLUDE_DIR} ${SQLCIPHER_INCLUDE_DIR}/sqlcipher)
+    endif()
+
+    target_include_directories(simple_tokenizer PRIVATE ${SIMPLE_TOKENIZER_INCLUDE_DIRS})
+    target_link_libraries(simple_tokenizer PRIVATE ${LIBSQLITE_NAME})
+    target_compile_definitions(simple_tokenizer PRIVATE SQLITE_ENABLE_FTS5 SQLITE_CORE)
+
+    if(APPLE)
+        set(SIMPLE_EXT_OUTPUT_DIR "${CMAKE_BINARY_DIR}/extensions")
+        set_target_properties(simple_tokenizer PROPERTIES
+            PREFIX ""
+            OUTPUT_NAME "simple"
+            LIBRARY_OUTPUT_DIRECTORY "${SIMPLE_EXT_OUTPUT_DIR}"
+        )
+    else()
+        set(SIMPLE_EXT_OUTPUT_DIR "${CMAKE_BINARY_DIR}/$<CONFIG>/extensions")
+        set_target_properties(simple_tokenizer PROPERTIES
+            PREFIX ""
+            OUTPUT_NAME "simple"
+            LIBRARY_OUTPUT_DIRECTORY "${SIMPLE_EXT_OUTPUT_DIR}"
+            RUNTIME_OUTPUT_DIRECTORY "${SIMPLE_EXT_OUTPUT_DIR}"
+        )
+        foreach(CONFIG_NAME IN ITEMS Release Debug RelWithDebInfo MinSizeRel)
+            set_property(TARGET simple_tokenizer PROPERTY LIBRARY_OUTPUT_DIRECTORY_${CONFIG_NAME} "${CMAKE_BINARY_DIR}/${CONFIG_NAME}/extensions")
+            set_property(TARGET simple_tokenizer PROPERTY RUNTIME_OUTPUT_DIRECTORY_${CONFIG_NAME} "${CMAKE_BINARY_DIR}/${CONFIG_NAME}/extensions")
+        endforeach()
+    endif()
+
+    install(TARGETS simple_tokenizer
+        LIBRARY DESTINATION Extensions
+        RUNTIME DESTINATION extensions
+    )
+endif()
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/version.h.in
     ${CMAKE_CURRENT_BINARY_DIR}/version.h
 )

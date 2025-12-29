@@ -5,6 +5,18 @@ if(NOT WIN32 AND NOT APPLE)
     )
 endif()
 
+if(APPLE)
+    if(TARGET simple_tokenizer)
+        install(FILES $<TARGET_FILE:simple_tokenizer> DESTINATION Extensions)
+    endif()
+endif()
+
+if(WIN32)
+    if(TARGET simple_tokenizer)
+        install(FILES $<TARGET_FILE:simple_tokenizer> DESTINATION extensions)
+    endif()
+endif()
+
 if(UNIX)
     install(FILES src/icons/${PROJECT_NAME}.png
         DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/256x256/apps/
