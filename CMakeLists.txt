@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.16)
 project(sqlitebrowser
     VERSION 3.13.99
     DESCRIPTION "GUI editor for SQLite databases"
-    LANGUAGES CXX
+    LANGUAGES C CXX
 )
 
 include(GNUInstallDirs)
@@ -102,6 +102,12 @@ if(APPLE OR WIN32)
     )
 
     add_library(simple_tokenizer MODULE ${SIMPLE_TOKENIZER_SOURCES})
+    # This is a plain SQLite extension (C code). Don't run Qt's automoc/uic/rcc on it.
+    set_target_properties(simple_tokenizer PROPERTIES
+        AUTOMOC OFF
+        AUTOUIC OFF
+        AUTORCC OFF
+    )
     set(SIMPLE_TOKENIZER_INCLUDE_DIRS)
     if(DEFINED SQLite3_INCLUDE_DIRS)
         list(APPEND SIMPLE_TOKENIZER_INCLUDE_DIRS ${SQLite3_INCLUDE_DIRS})

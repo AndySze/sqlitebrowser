@@ -43,7 +43,7 @@ else
 fi
 for TARGET in $(find build -name "DB Browser for SQL*.app" | sed -e 's/ /_/g'); do
     TARGET=$(echo $TARGET | sed -e 's/_/ /g')
-    mkdir "$TARGET/Contents/Extensions"
+    mkdir -p "$TARGET/Contents/Extensions"
 
     arch -x86_64 clang -I /opt/homebrew/opt/sqlb-sqlite/include -L /opt/homebrew/opt/sqlb-sqlite/lib -fno-common -dynamiclib src/extensions/extension-formats.c -o formats_x86_64.dylib
     clang -I /opt/homebrew/opt/sqlb-sqlite/include -L /opt/homebrew/opt/sqlb-sqlite/lib -fno-common -dynamiclib src/extensions/extension-formats.c -o formats_arm64.dylib
@@ -78,7 +78,7 @@ done
 # Copy the translation files to the app bundle
 for TARGET in $(find build -name "DB Browser for SQL*.app" | sed -e 's/ /_/g'); do
     TARGET=$(echo $TARGET | sed -e 's/_/ /g')
-    mkdir "$TARGET/Contents/translations"
+    mkdir -p "$TARGET/Contents/translations"
     for i in ar cs de en es fr it ko pl pt pt_BR ru uk zh_CN zh_TW; do
     find $(brew --prefix sqlb-qt@5)/translations -name "qt_${i}.qm" 2> /dev/null -exec cp {} "$TARGET/Contents/translations/" \;
     find $(brew --prefix sqlb-qt@5)/translations -name "qtbase_${i}.qm" 2> /dev/null -exec cp {} "$TARGET/Contents/translations/" \;
