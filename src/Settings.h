@@ -27,6 +27,8 @@ public:
     static bool importSettings(const QString& fileName);
     static void sync();
 
+    static QVariantMap defaultBuiltinExtensions();
+
 private:
     Settings() = delete;    // class is fully static
 

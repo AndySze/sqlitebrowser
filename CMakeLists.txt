@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.16)
 project(sqlitebrowser
     VERSION 3.13.99
     DESCRIPTION "GUI editor for SQLite databases"
-    LANGUAGES CXX
+    LANGUAGES C CXX
 )
 
 include(GNUInstallDirs)
@@ -60,6 +60,11 @@ endif()
 
 include(config/platform.cmake)
 
+if(APPLE)
+    set_source_files_properties(src/macapp.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+    target_sources(${PROJECT_NAME} PRIVATE src/macapp.icns)
+endif()
+
 find_package(${QT_MAJOR} REQUIRED COMPONENTS Concurrent Gui LinguistTools Network PrintSupport Test Widgets Xml)
 set(QT_LIBS
     ${QT_MAJOR}::Gui
@@ -92,6 +97,79 @@ if(sqlcipher)
 else()
     find_package(SQLite3 REQUIRED)
     set(LIBSQLITE_NAME SQLite::SQLite3)
+endif()
+
+if(APPLE OR WIN32)
+    set(SIMPLE_TOKENIZER_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/simple_tokenizer/simple_extension.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/simple_tokenizer/simple_tokenizer.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/simple_tokenizer/jieba_query.c
+    )
+
+    add_library(simple_tokenizer MODULE ${SIMPLE_TOKENIZER_SOURCES})
+    # This is a plain SQLite extension (C code). Don't run Qt's automoc/uic/rcc on it.
+    set_target_properties(simple_tokenizer PROPERTIES
+        AUTOMOC OFF
+        AUTOUIC OFF
+        AUTORCC OFF
+    )
+    set(SIMPLE_TOKENIZER_INCLUDE_DIRS)
+    if(DEFINED SQLite3_INCLUDE_DIRS)
+        list(APPEND SIMPLE_TOKENIZER_INCLUDE_DIRS ${SQLite3_INCLUDE_DIRS})
+    endif()
+    if(sqlcipher)
+        list(APPEND SIMPLE_TOKENIZER_INCLUDE_DIRS ${SQLCIPHER_INCLUDE_DIR} ${SQLCIPHER_INCLUDE_DIR}/sqlcipher)
+    endif()
+
+    target_include_directories(simple_tokenizer PRIVATE ${SIMPLE_TOKENIZER_INCLUDE_DIRS})
+    target_link_libraries(simple_tokenizer PRIVATE ${LIBSQLITE_NAME})
+    target_compile_definitions(simple_tokenizer PRIVATE SQLITE_ENABLE_FTS5 SQLITE_CORE)
+
+    if(APPLE)
+        # Ensure the entry point symbols are exported even with aggressive dead-stripping,
+        # otherwise sqlite3_load_extension() cannot find them via dlsym().
+        target_link_options(simple_tokenizer PRIVATE
+            "-Wl,-exported_symbol,_sqlite3_extension_init"
+            "-Wl,-exported_symbol,_sqlite3_simple_init"
+        )
+
+        set(SIMPLE_EXT_OUTPUT_DIR "${CMAKE_BINARY_DIR}/extensions")
+        set_target_properties(simple_tokenizer PROPERTIES
+            PREFIX ""
+            OUTPUT_NAME "simple"
+            LIBRARY_OUTPUT_DIRECTORY "${SIMPLE_EXT_OUTPUT_DIR}"
+        )
+    else()
+        set(SIMPLE_EXT_OUTPUT_DIR "${CMAKE_BINARY_DIR}/$<CONFIG>/extensions")
+        set_target_properties(simple_tokenizer PROPERTIES
+            PREFIX ""
+            OUTPUT_NAME "simple"
+            LIBRARY_OUTPUT_DIRECTORY "${SIMPLE_EXT_OUTPUT_DIR}"
+            RUNTIME_OUTPUT_DIRECTORY "${SIMPLE_EXT_OUTPUT_DIR}"
+        )
+        foreach(CONFIG_NAME IN ITEMS Release Debug RelWithDebInfo MinSizeRel)
+            set_property(TARGET simple_tokenizer PROPERTY LIBRARY_OUTPUT_DIRECTORY_${CONFIG_NAME} "${CMAKE_BINARY_DIR}/${CONFIG_NAME}/extensions")
+            set_property(TARGET simple_tokenizer PROPERTY RUNTIME_OUTPUT_DIRECTORY_${CONFIG_NAME} "${CMAKE_BINARY_DIR}/${CONFIG_NAME}/extensions")
+        endforeach()
+    endif()
+
+    install(TARGETS simple_tokenizer
+        LIBRARY DESTINATION Extensions
+        RUNTIME DESTINATION extensions
+    )
+
+    # Make local macOS builds usable without running installer scripts:
+    # copy the built tokenizer extension into the app bundle so it can be auto-loaded.
+    if(APPLE)
+        add_dependencies(${PROJECT_NAME} simple_tokenizer)
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:${PROJECT_NAME}>/Contents/Extensions"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "$<TARGET_FILE:simple_tokenizer>"
+                "$<TARGET_BUNDLE_DIR:${PROJECT_NAME}>/Contents/Extensions/simple.dylib"
+            VERBATIM
+        )
+    endif()
 endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/version.h.in

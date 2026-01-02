@@ -6,6 +6,11 @@ on:
       NIGHTLY:
         default: false
         type: boolean
+    secrets:
+      SIGNPATH_API_TOKEN:
+        required: false
+      SIGNPATH_ORGANIZATION_ID:
+        required: false
   workflow_dispatch:
 
 jobs:
@@ -21,6 +26,8 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       OPENSSL_VERSION: 1.1.1.2100
       QT_VERSION: 5.15.2
+      SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN || '' }}
+      SIGNPATH_ORGANIZATION_ID: ${{ secrets.SIGNPATH_ORGANIZATION_ID || '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -141,7 +148,7 @@ jobs:
             mv DB.Browser.for.SQLite-*.msi "DB.Browser.for.SQLite-dev-$(git rev-parse --short HEAD)-${{ matrix.arch }}.msi"
           }
 
-      - if: github.event_name != 'pull_request'
+      - if: github.event_name != 'pull_request' && env.SIGNPATH_API_TOKEN != '' && env.SIGNPATH_ORGANIZATION_ID != ''
         name: Upload artifacts for code signing with SignPath
         id: unsigned-artifacts
         uses: actions/upload-artifact@v6
@@ -150,7 +157,7 @@ jobs:
           path: installer\windows\DB.Browser.for.SQLite-*.msi
 
       # Change the signing-policy-slug when you release an RC, RTM or stable release.
-      - if: github.event_name != 'pull_request'
+      - if: github.event_name != 'pull_request' && env.SIGNPATH_API_TOKEN != '' && env.SIGNPATH_ORGANIZATION_ID != ''
         name: Code signing with SignPath
         uses: signpath/github-action-submit-signing-request@v2
         with:
@@ -176,6 +183,16 @@ jobs:
             move target\System\* "target\DB Browser for SQLite\"
           } else {
             move target\System64\* "target\DB Browser for SQLite\"
+          }
+          $simpleExtSource = Join-Path "${{ github.workspace }}" "release-sqlcipher\Release\extensions\simple.dll"
+          $simpleExtDestDir = "target\DB Browser for SQLite\extensions"
+          if (-not (Test-Path $simpleExtDestDir)) {
+            New-Item -ItemType Directory -Path $simpleExtDestDir | Out-Null
+          }
+          if (Test-Path $simpleExtSource) {
+            Copy-Item -Path $simpleExtSource -Destination $simpleExtDestDir -Force
+          } else {
+            Write-Host "simple.dll not found at $simpleExtSource"
           }
           Compress-Archive -Path "target\DB Browser for SQLite\*" -DestinationPath $FILENAME_FORMAT
 
